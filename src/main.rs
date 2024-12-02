@@ -3,6 +3,7 @@ use std::path::Path;
 use std::time::Instant;
 
 mod day_01;
+mod day_02;
 
 macro_rules! measure_time {
     ($func:expr, $data:expr) => {{
@@ -34,6 +35,11 @@ fn main() {
             day_01::run_task_1
         } else {
             day_01::run_task_2
+        }),
+        "02" => Some(if task == "1" {
+            day_02::run_task_1
+        } else {
+            day_02::run_task_2
         }),
         _ => None,
     };
