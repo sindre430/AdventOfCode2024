@@ -4,6 +4,7 @@ use std::time::Instant;
 
 mod day_01;
 mod day_02;
+mod day_03;
 
 macro_rules! measure_time {
     ($func:expr, $data:expr) => {{
@@ -40,6 +41,11 @@ fn main() {
             day_02::run_task_1
         } else {
             day_02::run_task_2
+        }),
+        "03" => Some(if task == "1" {
+            day_03::run_task_1
+        } else {
+            day_03::run_task_2
         }),
         _ => None,
     };
