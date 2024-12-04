@@ -6,36 +6,25 @@ pub fn run_task_1(data: String) {
     let chars = parse_input(data);
     let word_search = WordSearch::new(chars);
 
-    let res = word_search.search_for_word("X", None).unwrap();
+    let search_word = "XMAS";
+    let words = word_search.search_for_word(search_word);
 
-    println!("Found {} words", res.len());
-
-   /*  for word in &res {
-        println!("{:?}", word.char_nodes);
-    }
-
-
-
-    let x_chars = word_search.get_char_nodes_by_value('X');
-
-    for char_node in x_chars {
-        println!(
-            "{:?} {} {}",
-            char_node.coordinates,
-            char_node.value,
-            char_node
-                .neighbors
-                .clone()
-                .into_iter()
-                .map(|node| node.value)
-                .collect::<Vec<char>>()
-                .iter()
-                .collect::<String>()
-        );
-    }*/
+    println!("Found {} instances of '{}'", words.len(), search_word);
 }
 
-pub fn run_task_2(data: String) {}
+pub fn run_task_2(data: String) {
+    let chars = parse_input(data);
+    let word_search = WordSearch::new(chars);
+
+    let search_word = "MAS";
+    let words = word_search.search_for_word_x(search_word);
+
+    println!(
+        "Found {} instances of '{}' in X shape",
+        words.len() / 2,
+        search_word
+    );
+}
 
 fn parse_input(data: String) -> Vec<Vec<char>> {
     let chars = data.lines().map(|line| line.chars().collect()).collect();

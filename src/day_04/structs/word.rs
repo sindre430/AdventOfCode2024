@@ -1,17 +1,18 @@
 use super::char_node::CharNode;
 
-pub struct Word<'a> {
-    pub char_nodes: Vec<&'a CharNode<'a>>,
+#[derive(Clone)]
+pub struct Word {
+    pub coordinates: Vec<(usize, usize)>,
 }
 
-impl<'a> Word<'a> {
-    pub fn new(start_char_node: &'a CharNode<'a>) -> Word<'a> {
+impl Word {
+    pub fn new(start_char_node: &CharNode) -> Word {
         Word {
-            char_nodes: vec![start_char_node]
+            coordinates: vec![start_char_node.coordinates],
         }
     }
 
-    pub fn add_char_node(&mut self, char_node: &'a CharNode<'a>) {
-        self.char_nodes.push(char_node);
+    pub fn add_coordinate(&mut self, char_node: &CharNode) {
+        self.coordinates.push(char_node.coordinates);
     }
 }

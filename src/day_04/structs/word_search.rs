@@ -1,18 +1,14 @@
-use std::char;
+use std::{char, collections::HashMap};
 
-use super::{char_node::{self, CharNode}, word::Word};
+use super::{char_node::CharNode, word::Word};
 
-pub struct WordSearch<'a> {
-    pub char_nodes: Vec<CharNode<'a>>,
+pub struct WordSearch {
+    pub char_nodes: Vec<CharNode>,
 }
 
-impl<'a> WordSearch<'a> {
-    pub fn new(lines: Vec<Vec<char>>) -> WordSearch<'a> {
+impl WordSearch {
+    pub fn new(lines: Vec<Vec<char>>) -> WordSearch {
         let mut char_nodes = Vec::new();
-
-        // Find puzzle dimensions
-        let width = lines[0].len();
-        let height = lines.len();
 
         // Process each character in the word search
         for (y, line) in lines.iter().enumerate() {
@@ -23,122 +19,150 @@ impl<'a> WordSearch<'a> {
             }
         }
 
-        let mut word_search = WordSearch { char_nodes };
-        // let char_nodes = word_search.get_char_nodes();
-
-        // Add neighbors to each char node
-        let char_nodes_ptr = word_search.char_nodes.as_mut_ptr(); // Get raw pointer to avoid borrowing conflicts
-
-        for i in 0..word_search.char_nodes.len() {
-            let (x, y) = unsafe { (*char_nodes_ptr.add(i)).coordinates };
-            let directions = [
-                (-1, 0),  // left
-                (1, 0),   // right
-                (0, -1),  // up
-                (0, 1),   // down
-                (-1, -1), // up-left
-                (1, -1),  // up-right
-                (-1, 1),  // down-left
-                (1, 1),   // down-right
-            ];
-
-            for (dx, dy) in directions {
-                let new_x = x as isize + dx;
-                let new_y = y as isize + dy;
-
-                // Ensure new coordinates are within bounds
-                if new_x >= 0 && new_y >= 0 && (new_y as usize) < height && (new_x as usize) < width
-                {
-                    let neighbor_index = new_y as usize * width + new_x as usize;
-                    let neighbor = unsafe { &mut *char_nodes_ptr.add(neighbor_index) };
-                    unsafe { (*char_nodes_ptr.add(i)).add_neighbor(neighbor) };
-                }
-            }
-        }
+        let word_search = WordSearch { char_nodes };
 
         word_search
     }
 
-    pub fn search_for_word<'b>(
-        &'b self,
-        search_word: &str,
-        mut char_nodes: Option<Vec<&'b CharNode<'b>>>,
-    ) -> Option<Vec<Word<'b>>> {
-        if search_word.is_empty() {
-            // Return None if the search word is empty
-            return None;
+    pub fn search_for_word_x(&self, search_word: &str) -> Vec<Word> {
+        if search_word.len() % 2 != 1 {
+            panic!("Search word must have an odd number of characters");
         }
-    
-        let first_char = search_word.chars().next().unwrap();
-        let mut remaining_word = if search_word.is_empty() {
-            ""
-        } else {
-            &search_word[1..]
-        };
 
-        // Initialize char_nodes if None
-        if char_nodes.is_none() {
-            let first_nodes = self.get_char_nodes_by_value(first_char);
-            println!("First nodes: {:#?}", first_nodes.len());
-            char_nodes = Some(first_nodes);
-            remaining_word = if remaining_word.is_empty() {
-                ""
-            } else {
-                &remaining_word[1..]
-            };
-        }
-    
+        let first_char = search_word.chars().next().unwrap();
+        let start_nodes = self.get_char_nodes_by_value(first_char);
+
+        let directions = [
+            (-1, -1), // up-left
+            (1, -1),  // up-right
+            (-1, 1),  // down-left
+            (1, 1),   // down-right
+        ];
+
         let mut words = Vec::new();
-    
-        for char_node in char_nodes.unwrap() {
-            let matching_neighbors = char_node.get_neighbors_by_value(first_char);
-    
-            if matching_neighbors.is_empty() {
-                // If no neighbors, create a new Word and add it
-                words.push(Word::new(char_node));
-            } else {
-                // Recursively search the remaining word in matching neighbors
-                if let Some(mut found_words) = self.search_for_word(remaining_word, Some(matching_neighbors)) {
-                    for word in &mut found_words {
-                        word.add_char_node(char_node);
+        for node in &start_nodes {
+            for direction in directions {
+                let (dx, dy) = direction;
+                let mut word = Word::new(node);
+
+                let mut is_valid = true;
+                for i in 1..search_word.len() {
+                    let letter_x = node.coordinates.0 as isize + dx * i as isize;
+                    let letter_y = node.coordinates.1 as isize + dy * i as isize;
+
+                    // Ensure new coordinates are within bounds
+                    if letter_x < 0
+                        || letter_y < 0
+                        || (letter_y as usize) >= self.char_nodes.len()
+                        || (letter_x as usize) >= self.char_nodes.len()
+                    {
+                        is_valid = false;
+                        break;
                     }
-                    words.extend(found_words);
+
+                    let search_char = search_word.chars().nth(i).unwrap();
+                    let letter_node =
+                        self.get_char_node_by_coordinates((letter_x as usize, letter_y as usize));
+
+                    if letter_node.is_none() || letter_node.unwrap().value != search_char {
+                        is_valid = false;
+                        break;
+                    }
+
+                    word.add_coordinate(letter_node.unwrap());
+                }
+
+                if is_valid {
+                    words.push(word);
                 }
             }
         }
-    
-        if words.is_empty() {
-            None
-        } else {
-            Some(words)
+
+        // Find crossing words
+        let center_char_index = (search_word.len() as f32 / 2_f32).floor() as usize;
+        let mut center_coordinates = HashMap::new();
+        for word in &words {
+            *center_coordinates
+                .entry(word.coordinates[center_char_index])
+                .or_insert(0) += 1;
         }
+
+        let crossing_coordinates: Vec<(usize, usize)> = center_coordinates
+            .iter()
+            .filter(|&(_, &count)| count > 1)
+            .map(|(coordinates, _)| *coordinates)
+            .collect();
+
+        let crossing_words: Vec<Word> = words
+            .iter()
+            .filter(|w| crossing_coordinates.contains(&w.coordinates[center_char_index]))
+            .cloned()
+            .collect::<Vec<Word>>();
+
+        crossing_words
     }
-                /*let first_char = search_word.chars().next().unwrap();
-        let first_char_nodes = self.get_char_nodes_by_value(first_char);
 
-        let mut found_words = Vec::new();
-        for node in first_char_nodes {
-            let mut visited = vec![false; self.char_nodes.len()];
-            let mut word = String::new();
-            word.push(node.value);
+    pub fn search_for_word(&self, search_word: &str) -> Vec<Word> {
+        let first_char = search_word.chars().next().unwrap();
+        let start_nodes = self.get_char_nodes_by_value(first_char);
 
-            if self.search_word_recursive(node, search_word, &mut visited, &mut word) {
-                found_words.push(node);
+        let directions = [
+            (-1, 0),  // left
+            (1, 0),   // right
+            (0, -1),  // up
+            (0, 1),   // down
+            (-1, -1), // up-left
+            (1, -1),  // up-right
+            (-1, 1),  // down-left
+            (1, 1),   // down-right
+        ];
+
+        let mut words = Vec::new();
+        for node in &start_nodes {
+            for direction in directions {
+                let (dx, dy) = direction;
+                let mut word = Word::new(node);
+
+                let mut is_valid = true;
+                for i in 1..search_word.len() {
+                    let letter_x = node.coordinates.0 as isize + dx * i as isize;
+                    let letter_y = node.coordinates.1 as isize + dy * i as isize;
+
+                    // Ensure new coordinates are within bounds
+                    if letter_x < 0
+                        || letter_y < 0
+                        || (letter_y as usize) >= self.char_nodes.len()
+                        || (letter_x as usize) >= self.char_nodes.len()
+                    {
+                        is_valid = false;
+                        break;
+                    }
+
+                    let search_char = search_word.chars().nth(i).unwrap();
+                    let letter_node =
+                        self.get_char_node_by_coordinates((letter_x as usize, letter_y as usize));
+
+                    if letter_node.is_none() || letter_node.unwrap().value != search_char {
+                        is_valid = false;
+                        break;
+                    }
+
+                    word.add_coordinate(letter_node.unwrap());
+                }
+
+                if is_valid {
+                    words.push(word);
+                }
             }
         }
 
-        found_words*/
-    
-
-    fn get_char_nodes(&mut self) -> Vec<&mut CharNode<'a>> {
-        self.char_nodes.iter_mut().collect()
+        words
     }
 
-    pub fn get_char_node_by_coordinates(&self, coordinates: (usize, usize)) -> &CharNode {
+    pub fn get_char_node_by_coordinates(&self, coordinates: (usize, usize)) -> Option<&CharNode> {
         self.char_nodes
             .iter()
             .find(|&node| node.coordinates == coordinates)
-            .unwrap()
     }
 
     pub fn get_char_nodes_by_value(&self, value: char) -> Vec<&CharNode> {
