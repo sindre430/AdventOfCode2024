@@ -1,4 +1,6 @@
-use super::char_node::CharNode;
+use std::char;
+
+use super::{char_node::{self, CharNode}, word::Word};
 
 pub struct WordSearch<'a> {
     pub char_nodes: Vec<CharNode<'a>>,
@@ -57,31 +59,61 @@ impl<'a> WordSearch<'a> {
         word_search
     }
 
-    pub fn search_for_word(
-        &self,
+    pub fn search_for_word<'b>(
+        &'b self,
         search_word: &str,
-        char_nodes: Option<Vec<&CharNode>>,
-    ) -> Vec<&CharNode> {
+        mut char_nodes: Option<Vec<&'b CharNode<'b>>>,
+    ) -> Option<Vec<Word<'b>>> {
+        if search_word.is_empty() {
+            // Return None if the search word is empty
+            return None;
+        }
+    
         let first_char = search_word.chars().next().unwrap();
-
-        // Search for first char nodes if none are provided
-        if !char_nodes.is_some() {
-            let first_char_nodes = self.get_char_nodes_by_value(first_char);
-
-            return self.search_for_word(search_word.split_at(1).1, Some(first_char_nodes));
-        }
-
-        // Return all char nodes if search word is empty
-        if search_word.len() == 0 {
-            return char_nodes.unwrap();
-        }
-
-        let first_char_nodes = match char_nodes {
-            Some(nodes) => nodes,
-            None => self.get_char_nodes_by_value(first_char),
+        let mut remaining_word = if search_word.is_empty() {
+            ""
+        } else {
+            &search_word[1..]
         };
 
-        /*let first_char = search_word.chars().next().unwrap();
+        // Initialize char_nodes if None
+        if char_nodes.is_none() {
+            let first_nodes = self.get_char_nodes_by_value(first_char);
+            println!("First nodes: {:#?}", first_nodes.len());
+            char_nodes = Some(first_nodes);
+            remaining_word = if remaining_word.is_empty() {
+                ""
+            } else {
+                &remaining_word[1..]
+            };
+        }
+    
+        let mut words = Vec::new();
+    
+        for char_node in char_nodes.unwrap() {
+            let matching_neighbors = char_node.get_neighbors_by_value(first_char);
+    
+            if matching_neighbors.is_empty() {
+                // If no neighbors, create a new Word and add it
+                words.push(Word::new(char_node));
+            } else {
+                // Recursively search the remaining word in matching neighbors
+                if let Some(mut found_words) = self.search_for_word(remaining_word, Some(matching_neighbors)) {
+                    for word in &mut found_words {
+                        word.add_char_node(char_node);
+                    }
+                    words.extend(found_words);
+                }
+            }
+        }
+    
+        if words.is_empty() {
+            None
+        } else {
+            Some(words)
+        }
+    }
+                /*let first_char = search_word.chars().next().unwrap();
         let first_char_nodes = self.get_char_nodes_by_value(first_char);
 
         let mut found_words = Vec::new();
@@ -96,7 +128,7 @@ impl<'a> WordSearch<'a> {
         }
 
         found_words*/
-    }
+    
 
     fn get_char_nodes(&mut self) -> Vec<&mut CharNode<'a>> {
         self.char_nodes.iter_mut().collect()

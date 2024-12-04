@@ -4,9 +4,19 @@ use structs::word_search::WordSearch;
 
 pub fn run_task_1(data: String) {
     let chars = parse_input(data);
-    let wordSearch = WordSearch::new(chars);
+    let word_search = WordSearch::new(chars);
 
-    let x_chars = wordSearch.get_char_nodes_by_value('X');
+    let res = word_search.search_for_word("X", None).unwrap();
+
+    println!("Found {} words", res.len());
+
+   /*  for word in &res {
+        println!("{:?}", word.char_nodes);
+    }
+
+
+
+    let x_chars = word_search.get_char_nodes_by_value('X');
 
     for char_node in x_chars {
         println!(
@@ -22,7 +32,7 @@ pub fn run_task_1(data: String) {
                 .iter()
                 .collect::<String>()
         );
-    }
+    }*/
 }
 
 pub fn run_task_2(data: String) {}
