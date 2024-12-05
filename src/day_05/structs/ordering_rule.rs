@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct OrderingRule {
     pub left: i32,
     pub right: i32,

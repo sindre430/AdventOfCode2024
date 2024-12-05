@@ -16,7 +16,20 @@ pub fn run_task_1(data: String) {
     println!("Sum: {}", sum);
 }
 
-pub fn run_task_2(data: String) {}
+pub fn run_task_2(data: String) {
+    let (ordering_rules, updates) = parse_input(data);
+
+    let mut sum = 0;
+    for update in updates.iter() {
+        let is_correct_ordered = update.validate_ordering(&ordering_rules);
+        if !is_correct_ordered {
+            let corrected = Update::correct_ordering(&update.page_numbers, &ordering_rules);
+            sum += corrected[corrected.len() / 2];
+        }
+    }
+
+    println!("Sum: {}", sum);
+}
 
 fn parse_input(data: String) -> (Vec<OrderingRule>, Vec<Update>) {
     let mut ordering_rules = Vec::new();

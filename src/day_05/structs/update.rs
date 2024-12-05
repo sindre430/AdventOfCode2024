@@ -40,9 +40,33 @@ impl Update {
         is_correct_ordered
     }
 
-    pub fn correct_ordering(&self, ordering_rules: &Vec<OrderingRule>) -> Vec<i32> {
-        let mut correct_ordering = Vec::new();
+    pub fn correct_ordering(input_order: &Vec<i32>, ordering_rules: &Vec<OrderingRule>) -> Vec<i32> {
+        let rules_of_interest = ordering_rules
+        .iter()
+        .filter(|rule| input_order.contains(&rule.left) && input_order.contains(&rule.right))
+        .cloned()
+        .collect::<Vec<OrderingRule>>();
 
-        correct_ordering
+        let mut rules_for_numbers: Vec<(i32, Vec<&OrderingRule>)> = Vec::new();
+        for (_, num) in input_order.iter().enumerate() {
+            let rules = rules_of_interest
+                .iter()
+                .filter(|rule| rule.right == *num)
+                .collect::<Vec<&OrderingRule>>();
+
+            rules_for_numbers.push((*num, rules));
+        }
+
+        rules_for_numbers
+            .sort_by(|a, b| {
+                a.1.len().cmp(&b.1.len())
+            });
+
+        let corrected_ordering= rules_for_numbers
+            .iter()
+            .map(|rfn| rfn.0 )
+            .collect::<Vec<i32>>();
+
+        corrected_ordering
     }
 }
