@@ -1,7 +1,13 @@
+use std::fs::File;
+use std::io::Write;
+
 pub fn run_task_1(data: String) {
     let mut diskmap = parse_input(data);
 
-    println!("Diskmap: {:?}", diskmap);
+    println!("Diskmap Before: {}", diskmap.iter().collect::<String>());
+
+    let mut file = File::create("c:/temp/diskmap.txt").unwrap();
+    file.write_all(diskmap.iter().collect::<String>().as_bytes());
 
     let mut prev_free_space_index = 0;
     let mut swap_indexes = Vec::new();
@@ -16,21 +22,19 @@ pub fn run_task_1(data: String) {
 
         match find_char_from_index(&diskmap, '.', prev_free_space_index) {
             Some(free_space_index) => {
-                println!("Found free space at index: {}", free_space_index);
                 prev_free_space_index = free_space_index;
             }
             None => {
-                println!("No more free space found");
                 break;
             }
         }
 
-        swap_indexes.push((diskmap.len() - rev_index - 1, prev_free_space_index));
-        println!(
-            "Swapping {} with {}",
-            diskmap.len() - rev_index - 1,
-            prev_free_space_index
-        );
+        let index = diskmap.len() - rev_index - 1;
+        if index <= prev_free_space_index {
+            break;
+        }
+
+        swap_indexes.push((index, prev_free_space_index));
         prev_free_space_index += 1;
     }
 
@@ -38,9 +42,14 @@ pub fn run_task_1(data: String) {
         diskmap.swap(from, to);
     }
 
-    for c in diskmap {
-        print!("{}", c);
+    println!("Diskmap After:  {}", diskmap.iter().collect::<String>());
+
+    let mut sum = 0;
+    for (index, c) in diskmap.iter().enumerate() {
+        sum += index * c.to_digit(10).unwrap_or(0) as usize;
     }
+
+    println!("Sum: {}", sum);
 }
 
 pub fn run_task_2(data: String) {}
