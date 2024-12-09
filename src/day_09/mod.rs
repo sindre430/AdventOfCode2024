@@ -1,26 +1,19 @@
-use std::fs::File;
-use std::io::Write;
+mod structs;
+use structs::disk_block::DiskBlock;
+use structs::disk_block::FileBlock;
+use structs::disk_block::FreeSpace;
 
 pub fn run_task_1(data: String) {
     let mut diskmap = parse_input(data);
 
-    println!("Diskmap Before: {}", diskmap.iter().collect::<String>());
-
-    let mut file = File::create("c:/temp/diskmap.txt").unwrap();
-    file.write_all(diskmap.iter().collect::<String>().as_bytes());
-
     let mut prev_free_space_index = 0;
     let mut swap_indexes = Vec::new();
     for (rev_index, c) in diskmap.iter().rev().enumerate() {
-        if *c == '-' {
-            break;
-        }
-
-        if *c == '.' {
+        if c.as_any().is::<FreeSpace>() {
             continue;
         }
 
-        match find_char_from_index(&diskmap, '.', prev_free_space_index) {
+        match find_next_free_space_index(&diskmap, prev_free_space_index) {
             Some(free_space_index) => {
                 prev_free_space_index = free_space_index;
             }
@@ -42,11 +35,11 @@ pub fn run_task_1(data: String) {
         diskmap.swap(from, to);
     }
 
-    println!("Diskmap After:  {}", diskmap.iter().collect::<String>());
-
-    let mut sum = 0;
+    let mut sum: u64 = 0;
     for (index, c) in diskmap.iter().enumerate() {
-        sum += index * c.to_digit(10).unwrap_or(0) as usize;
+        if let Some(file_block) = c.as_any().downcast_ref::<FileBlock>() {
+            sum += index as u64 * file_block.id as u64;
+        }
     }
 
     println!("Sum: {}", sum);
@@ -54,35 +47,35 @@ pub fn run_task_1(data: String) {
 
 pub fn run_task_2(data: String) {}
 
-fn find_char_from_index(vec: &Vec<char>, target: char, start_index: usize) -> Option<usize> {
-    // Check if the start_index is within the bounds of the Vec
-    if start_index >= vec.len() {
-        return None;
-    }
-
-    // Iterate over the vector starting from the given index
-    for (i, &c) in vec.iter().enumerate().skip(start_index) {
-        if c == target {
+fn find_next_free_space_index(
+    disk_map: &Vec<Box<dyn DiskBlock>>,
+    start_index: usize,
+) -> Option<usize> {
+    for (i, block) in disk_map.iter().enumerate().skip(start_index) {
+        if block.as_any().is::<FreeSpace>() {
             return Some(i);
         }
     }
+
     None
 }
 
-fn parse_input(data: String) -> Vec<char> {
+fn parse_input(data: String) -> Vec<Box<dyn DiskBlock>> {
     let raw_data = data.lines().next().unwrap_or("");
-    let mut result: Vec<char> = Vec::new();
+    let mut result: Vec<Box<dyn DiskBlock>> = Vec::new();
     let mut is_file_block = true;
     let mut file_block_id = 0;
     for c in raw_data.chars() {
         let count = c.to_digit(10).unwrap_or(0) as usize;
         if is_file_block {
-            let block = file_block_id.to_string().repeat(count);
-            result.extend(block.chars());
+            for _ in 0..count {
+                result.push(Box::new(FileBlock { id: file_block_id }));
+            }
             file_block_id += 1;
         } else {
-            let dots = ".".repeat(count);
-            result.extend(dots.chars());
+            for _ in 0..count {
+                result.push(Box::new(FreeSpace {}));
+            }
         }
 
         is_file_block = !is_file_block;
