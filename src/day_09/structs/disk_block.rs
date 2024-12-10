@@ -6,6 +6,7 @@ pub trait DiskBlock {
 
 pub struct FileBlock {
     pub id: u32,
+    pub size: u32,
 }
 
 pub struct FreeSpace {}
