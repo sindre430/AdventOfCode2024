@@ -13,6 +13,7 @@ mod day_08;
 mod day_10;
 mod day_11;
 mod day_12;
+mod day_13;
 
 macro_rules! measure_time {
     ($func:expr, $data:expr) => {{
@@ -94,6 +95,11 @@ fn main() {
             day_12::run_task_1
         } else {
             day_12::run_task_2
+        }),
+        "13" => Some(if task == "1" {
+            day_13::run_task_1
+        } else {
+            day_13::run_task_2
         }),
         _ => None,
     };
